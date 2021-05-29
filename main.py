@@ -1,24 +1,35 @@
-import subprocess
+from subprocess import call, check_output, CalledProcessError
 from sys import exit
-import argparse
-import re
+from argparse import ArgumentParser
+from re import search
 
-parser = argparse.ArgumentParser(description="Utility for change the MAC address")
-parser.add_argument("-i", "--interface", dest="interface", default="eth0", help="Interface to change a MAC address")
-parser.add_argument("-m", "--mac", dest="new_mac", default="00:11:22:33:44:55", help="New MAC address to change")
-args = parser.parse_args()
+def parse_args():
+    parser = ArgumentParser(description="Utility for change the MAC address")
+    parser.add_argument("-i", "--interface", dest="interface", default="eth0", help="Interface to change a MAC address")
+    parser.add_argument("-m", "--mac", dest="new_mac", default="00:11:22:33:44:55", help="New MAC address to change")
+    args = parser.parse_args()
+    
+    if args.interface == "eth0" and args.new_mac == "00:11:22:33:44:55":
+	    print("[+] Use the default values for interface(eth0) and MAC(00:11:22:33:44:55)")
+    
+    return args
 
-try:
-    old_mac = re.search(r"\w\w:\w\w:\w\w:\w\w:\w\w:\w\w", str(subprocess.check_output(f"ifconfig {args.interface}", shell=True)))
-except subprocess.CalledProcessError:
-    print(f"[-] MAC address couldn't read for {args.interface}")
-    exit()
+def get_mac(interface):
+    try:
+        mac = search(r"\w\w:\w\w:\w\w:\w\w:\w\w:\w\w", str(check_output(f"ifconfig {interface}", shell=True)))
+    except CalledProcessError:
+        print(f"[-] MAC address couldn't read for {interface}")
+        exit()
+        
+    return mac.group(0)
 
-if args.interface == "eth0" and args.new_mac == "00:11:22:33:44:55":
-	print("[+] Use the default values for interface(eth0) and MAC(00:11:22:33:44:55)")
+def change_mac(interface, mac):
+    print(f"[+] Changing MAC adress for {interface} from {get_mac(interface)} to {mac}")
+    
+    call(f"ifconfig {interface} down", shell=True)
+    call(f"ifconfig {interface} hw ether {mac}", shell=True)
+    call(f"ifconfig {interface} up", shell=True)
+    
+args = parse_args()
 
-print(f"[+] Changing MAC adress for {args.interface} from {old_mac.group(0)} to {args.new_mac}")
-
-subprocess.call(f"ifconfig {args.interface} down", shell=True)
-subprocess.call(f"ifconfig {args.interface} hw ether {args.new_mac}", shell=True)
-subprocess.call(f"ifconfig {args.interface} up", shell=True)
+change_mac(args.interface, args.new_mac)

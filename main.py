@@ -24,11 +24,17 @@ def get_mac(interface):
     return mac.group(0)
 
 def change_mac(interface, mac):
-    print(f"[+] Changing MAC adress for {interface} from {get_mac(interface)} to {mac}")
+    old_mac = get_mac(interface)
+    print(f"[+] Changing MAC adress for {interface} from {old_mac} to {mac}")
     
     call(f"ifconfig {interface} down", shell=True)
     call(f"ifconfig {interface} hw ether {mac}", shell=True)
     call(f"ifconfig {interface} up", shell=True)
+    
+    if get_mac(interface) == old_mac:
+        print("[+] Changing MAC address for interface successfully!")
+    else:
+        print("Something wrong")
     
 args = parse_args()
 
